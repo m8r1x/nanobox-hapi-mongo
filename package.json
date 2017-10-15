@@ -1,0 +1,10 @@
+{
+  "name": "nanobox-hapi-mongo",
+  "version": "0.1.0",
+  "description": "A simple RESTful API with hapijs, mongodb and nanobox",
+  "main": "index.js",
+  "repository": "https://gitlab.com/m8r1x/nanobox-hapi-mongo",
+  "author": "m8r1x <m8r1x.io@gmail.com>",
+  "license": "MIT",
+  "private": false
+}
