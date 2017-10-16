@@ -24,5 +24,9 @@
     "lab": "^14.3.1",
     "sinon": "^4.0.1",
     "sinon-mongoose": "^2.0.2"
+  },
+  "scripts": {
+    "start": "node .",
+    "test": "lab -v -L -C -D -c -t 85"
   }
 }
