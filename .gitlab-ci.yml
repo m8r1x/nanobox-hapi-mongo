@@ -1,0 +1,31 @@
+image: node:latest
+
+cache:
+  key: cache_yarn
+  paths:
+    - .cache_yarn
+
+stages:
+  - install
+  - test
+
+install_dependencies:
+  stage: install
+  script:
+    - yarn install --cache-folder .cache_yarn
+  only:
+    - staging
+    - production
+  artifacts:
+    paths:
+      - node_modules
+
+test_server:
+  stage: test
+  script:
+    - yarn test
+  only:
+    - staging
+    - production
+  dependencies:
+    - install_dependencies
