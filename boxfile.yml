@@ -1,0 +1,12 @@
+run.config:
+  engine: nodejs
+  cache_dirs:
+    - node_modules
+  extra_path_dirs:
+    -node_modules/.bin
+  extra_steps:
+    - yarn
+data.db:
+  image: nanobox/mongodb
+  config:
+    version: 3.4
