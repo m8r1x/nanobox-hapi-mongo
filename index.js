@@ -17,6 +17,17 @@ server.method('findAndLimitBy', (model, limit, next) => {
   });
 });
 
+server.method('findByName', (model, name, next) => {
+
+  model.findOne({ name }).exec((err, docs) => {
+
+    if (err) {
+      next(err);
+    }
+    return next(err, docs);
+  });
+});
+
 server.register([
   {
     register: require('./lib/plugins/util')
