@@ -12,6 +12,7 @@ const expect = Code.expect;
 describe('Companies module test suite', () => {
 
   const baseUrl = '/v1/companies';
+  const token = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7Il9pZCI6IjU5ZTljZmU4OTE0NGRiMzNlODg2NmM3YSIsImVtYWlsIjoid2lsbGllbWlrLndtaWtAZ21haWwuY29tIn0sImlhdCI6MTUwODUxMTM3MiwiZXhwIjoxNTQwMDY4OTcyfQ.hdmyRztVt3Oh0SamEExv8WhUkxUmWc7aqrff3GNAdnw';
 
   before((done) => {
 
@@ -25,28 +26,48 @@ describe('Companies module test suite', () => {
     });
     Server.method('findByName', (model, name, next) => {
 
-      // const keys = Object.keys(criteria);
       const result = data.filter((d) => d.name === name);
       next(null, result[0]);
     });
 
-    Server.register({
+    Server.method('validateUser', (email, cb) => {
+
+      cb(null, { email: 'williemik.wmik@gmail.com' });
+    });
+    Server.register([require('hapi-auth-jwt'), {
       register: require('../../lib/modules/companies'),
       options: {
         baseUrl: '/v1/companies'
       }
-    }, (err) => {
+    }], (err) => {
 
       expect(err).to.not.exist();
       done();
     });
   });
 
+  it('should respond 401 when invalid or missing authentication token',
+    (done) => {
+
+      this.Server.inject({
+        method: 'GET',
+        url: baseUrl
+      }, (response) => {
+
+        expect(response.statusCode).to.equal(401);
+        expect(response.result.error).to.equal('Unauthorized');
+        done();
+      });
+    });
+
   it('should return array of 5 records by default', (done) => {
 
     this.Server.inject({
       method: 'GET',
-      url: baseUrl
+      url: baseUrl,
+      headers: {
+        authorization: token
+      }
     }, (response) => {
 
       expect(response.statusCode).to.equal(200);
@@ -60,7 +81,10 @@ describe('Companies module test suite', () => {
 
       this.Server.inject({
         method: 'GET',
-        url: baseUrl + '?limit=3'
+        url: baseUrl + '?limit=3',
+        headers: {
+          authorization: token
+        }
       }, (response) => {
 
         expect(response.statusCode).to.equal(200);
@@ -74,7 +98,10 @@ describe('Companies module test suite', () => {
 
       this.Server.inject({
         method: 'GET',
-        url: baseUrl + '?limit=me'
+        url: baseUrl + '?limit=me',
+        headers: {
+          authorization: token
+        }
       }, (response) => {
 
         expect(response.statusCode).to.equal(400);
@@ -93,7 +120,10 @@ describe('Companies module test suite', () => {
       });
       this.Server.inject({
         method: 'GET',
-        url: baseUrl
+        url: baseUrl,
+        headers: {
+          authorization: token
+        }
       }, (response) => {
 
         expect(response.statusCode).to.equal(500);
@@ -107,7 +137,10 @@ describe('Companies module test suite', () => {
 
       this.Server.inject({
         method: 'GET',
-        url: baseUrl + '/0-6.com'
+        url: baseUrl + '/0-6.com',
+        headers: {
+          authorization: token
+        }
       }, (response) => {
 
         expect(response.statusCode).to.equal(200);
@@ -121,7 +154,10 @@ describe('Companies module test suite', () => {
 
       this.Server.inject({
         method: 'GET',
-        url: baseUrl + '/fcebok'
+        url: baseUrl + '/fcebok',
+        headers: {
+          authorization: token
+        }
       }, (response) => {
 
         expect(response.statusCode).to.equal(404);
@@ -140,7 +176,10 @@ describe('Companies module test suite', () => {
       });
       this.Server.inject({
         method: 'GET',
-        url: baseUrl + '/facebook'
+        url: baseUrl + '/facebook',
+        headers: {
+          authorization: token
+        }
       }, (response) => {
 
         expect(response.statusCode).to.equal(500);
