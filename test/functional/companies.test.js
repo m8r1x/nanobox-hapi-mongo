@@ -20,10 +20,14 @@ describe('Companies module test suite', () => {
     const Server = this.Server = new Hapi.Server();
     Server.connection();
 
+    /*
+      Server method stubs
+    */
     Server.method('findAndLimitBy', (model, limit, next) => {
 
       next(null, data.slice(0, limit));
     });
+
     Server.method('findByName', (model, name, next) => {
 
       const result = data.filter((d) => d.name === name);
@@ -34,31 +38,20 @@ describe('Companies module test suite', () => {
 
       cb(null, { email: 'williemik.wmik@gmail.com' });
     });
-    Server.register([require('hapi-auth-jwt'), {
-      register: require('../../lib/modules/companies'),
-      options: {
-        baseUrl: '/v1/companies'
-      }
-    }], (err) => {
+
+    Server.register([
+      require('hapi-auth-jwt'),
+      {
+        register: require('../../lib/modules/companies'),
+        options: {
+          baseUrl: '/v1/companies'
+        }
+      }], (err) => {
 
       expect(err).to.not.exist();
       done();
     });
   });
-
-  it('should respond 401 when invalid or missing authentication token',
-    (done) => {
-
-      this.Server.inject({
-        method: 'GET',
-        url: baseUrl
-      }, (response) => {
-
-        expect(response.statusCode).to.equal(401);
-        expect(response.result.error).to.equal('Unauthorized');
-        done();
-      });
-    });
 
   it('should return array of 5 records by default', (done) => {
 
@@ -76,7 +69,7 @@ describe('Companies module test suite', () => {
     });
   });
 
-  it('should return array of 3 companies when limit=3',
+  it('should return array of 3 records when limit=3',
     (done) => {
 
       this.Server.inject({
@@ -89,6 +82,23 @@ describe('Companies module test suite', () => {
 
         expect(response.statusCode).to.equal(200);
         expect(response.result).to.be.an.array().and.have.length(3);
+        done();
+      });
+    });
+
+  it('should return one record specified by name',
+    (done) => {
+
+      this.Server.inject({
+        method: 'GET',
+        url: baseUrl + '/0-6.com',
+        headers: {
+          authorization: token
+        }
+      }, (response) => {
+
+        expect(response.statusCode).to.equal(200);
+        expect(response.result).to.be.an.object();
         done();
       });
     });
@@ -118,6 +128,7 @@ describe('Companies module test suite', () => {
 
         next(new Error());
       });
+
       this.Server.inject({
         method: 'GET',
         url: baseUrl,
@@ -128,23 +139,6 @@ describe('Companies module test suite', () => {
 
         expect(response.statusCode).to.equal(500);
         expect(response.result.error).to.equal('Internal Server Error');
-        done();
-      });
-    });
-
-  it('should return one record specified by name',
-    (done) => {
-
-      this.Server.inject({
-        method: 'GET',
-        url: baseUrl + '/0-6.com',
-        headers: {
-          authorization: token
-        }
-      }, (response) => {
-
-        expect(response.statusCode).to.equal(200);
-        expect(response.result).to.be.an.object();
         done();
       });
     });
@@ -166,7 +160,7 @@ describe('Companies module test suite', () => {
       });
     });
 
-  it('should respond 500 when the database throws an error',
+  it('should respond 500 when database throws an error',
     (done) => {
 
       const stub = Sinon.stub(this.Server.methods, 'findByName');
@@ -174,6 +168,7 @@ describe('Companies module test suite', () => {
 
         next(new Error());
       });
+
       this.Server.inject({
         method: 'GET',
         url: baseUrl + '/facebook',
@@ -184,6 +179,71 @@ describe('Companies module test suite', () => {
 
         expect(response.statusCode).to.equal(500);
         expect(response.result.error).to.equal('Internal Server Error');
+        done();
+      });
+    });
+
+  it('should respond 500 when authentication fails with error',
+    (done) => {
+
+      const validateUserStub = this.validateUserStub =
+       Sinon.stub(this.Server.methods, 'validateUser');
+
+      validateUserStub.callsFake((email, cb) => {
+
+        cb(new Error());
+      });
+
+      this.Server.inject({
+        method: 'GET',
+        url: baseUrl,
+        headers: {
+          authorization: token
+        }
+      }, (response) => {
+
+        expect(response.statusCode).to.equal(500);
+        done();
+      });
+    });
+
+  it('should respond 401 when user is not found', (done) => {
+
+    this.validateUserStub.onSecondCall().callsFake((email, cb) => {
+
+      cb(null, null);
+    });
+
+    this.Server.inject({
+      method: 'GET',
+      url: baseUrl,
+      headers: {
+        authorization: token
+      }
+    }, (response) => {
+
+      expect(response.statusCode).to.equal(401);
+      done();
+    });
+  });
+
+  it('should respond 401 when invalid authentication token',
+    (done) => {
+
+      this.validateUserStub.onThirdCall().callsFake((email, cb) => {
+
+        cb(null, { email: 'email@domain.com' });
+      });
+
+      this.Server.inject({
+        method: 'GET',
+        url: baseUrl,
+        headers: {
+          authorization: token
+        }
+      }, (response) => {
+
+        expect(response.statusCode).to.equal(401);
         done();
       });
     });
