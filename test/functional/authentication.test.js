@@ -57,52 +57,6 @@ describe('Authentication module test suite', () => {
       });
     });
 
-  it('should respond 400 when email already exists',
-    (done) => {
-
-      const stub = Sinon.stub(this.Server.methods, 'registerUser');
-      stub.callsFake((model, payload, cb) => {
-
-        cb(null, { message: 'email exists.' });
-      });
-      stub.onSecondCall().callsFake((model, payload, cb) => {
-
-        cb(new Error());
-      });
-      this.Server.inject({
-        method: 'POST',
-        url: baseUrl + '/register',
-        payload: {
-          email: 'email@domain.com',
-          password: 'thispass'
-        }
-      }, (response) => {
-
-        expect(response.statusCode).to.equal(400);
-        expect(response.result.error).to.equal('Bad Request');
-        done();
-      });
-    });
-
-
-  it('should respond 500 when the database throws an error',
-    (done) => {
-
-      this.Server.inject({
-        method: 'POST',
-        url: baseUrl + '/register',
-        payload: {
-          email: 'email@domain.com',
-          password: 'thispass'
-        }
-      }, (response) => {
-
-        expect(response.statusCode).to.equal(500);
-        expect(response.result.error).to.equal('Internal Server Error');
-        done();
-      });
-    });
-
   it('should return a token on successful login', (done) => {
 
     this.Server.inject({
@@ -120,22 +74,68 @@ describe('Authentication module test suite', () => {
     });
   });
 
+  it('should respond 400 when email already exists',
+    (done) => {
+
+      const registerUserStub = this.registerUserStub =
+      Sinon.stub(this.Server.methods, 'registerUser');
+
+      registerUserStub.callsFake((model, payload, cb) => {
+
+        cb(null, { message: 'email exists.' });
+      });
+
+      this.Server.inject({
+        method: 'POST',
+        url: baseUrl + '/register',
+        payload: {
+          email: 'email@domain.com',
+          password: 'thispass'
+        }
+      }, (response) => {
+
+        expect(response.statusCode).to.equal(400);
+        expect(response.result.error).to.equal('Bad Request');
+        done();
+      });
+    });
+
+  it('should respond 500 when database throws an error',
+    (done) => {
+
+      this.registerUserStub.onSecondCall().callsFake(
+        (model, payload, cb) => {
+
+          cb(new Error());
+        });
+
+      this.Server.inject({
+        method: 'POST',
+        url: baseUrl + '/register',
+        payload: {
+          email: 'email@domain.com',
+          password: 'thispass'
+        }
+      }, (response) => {
+
+        expect(response.statusCode).to.equal(500);
+        expect(response.result.error).to.equal('Internal Server Error');
+        done();
+      });
+    });
+
+
   it('should respond 400 when user login is not found',
     (done) => {
 
-      const stub = Sinon.stub(this.Server.methods, 'fetchToken');
-      stub.callsFake((model, payload, cb) => {
+      const fetchTokenStub = this.fetchTokenStub =
+      Sinon.stub(this.Server.methods, 'fetchToken');
+
+      fetchTokenStub.callsFake((model, payload, cb) => {
 
         cb(null, { message: 'Not found' });
       });
-      stub.onSecondCall().callsFake((model, payload, cb) => {
 
-        cb(null, { message: 'Unauthorized' });
-      });
-      stub.onThirdCall().callsFake((model, payload, cb) => {
-
-        cb(new Error());
-      });
       this.Server.inject({
         method: 'POST',
         url: baseUrl + '/login',
@@ -154,6 +154,12 @@ describe('Authentication module test suite', () => {
   it('should respond 401 when user is unauthorized',
     (done) => {
 
+      this.fetchTokenStub.onSecondCall().callsFake(
+        (model, payload, cb) => {
+
+          cb(null, { message: 'Unauthorized' });
+        });
+
       this.Server.inject({
         method: 'POST',
         url: baseUrl + '/login',
@@ -171,6 +177,12 @@ describe('Authentication module test suite', () => {
 
   it('should respond 500 when database throws an error',
     (done) => {
+
+      this.fetchTokenStub.onThirdCall().callsFake(
+        (model, payload, cb) => {
+
+          cb(new Error());
+        });
 
       this.Server.inject({
         method: 'POST',
