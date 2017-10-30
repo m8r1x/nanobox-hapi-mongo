@@ -30,7 +30,7 @@ describe('Authentication module test suite', () => {
     Server.register({
       register: require('../../lib/modules/authentication'),
       options: {
-        baseUrl: '/v1/user'
+        baseUrl
       }
     }, (err) => {
 
@@ -100,7 +100,7 @@ describe('Authentication module test suite', () => {
       });
     });
 
-  it('should respond 500 when database throws an error',
+  it('should respond 500 for `/user/register` when database throws an error',
     (done) => {
 
       this.registerUserStub.onSecondCall().callsFake(
@@ -175,7 +175,7 @@ describe('Authentication module test suite', () => {
       });
     });
 
-  it('should respond 500 when database throws an error',
+  it('should respond 500 for `/user/login` when database throws an error',
     (done) => {
 
       this.fetchTokenStub.onThirdCall().callsFake(

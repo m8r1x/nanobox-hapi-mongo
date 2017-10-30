@@ -16,35 +16,16 @@ describe('Companies module test suite', () => {
 
   before((done) => {
 
-    const data = require('../data');
     const Server = this.Server = new Hapi.Server();
     Server.connection();
 
-    /*
-      Server method stubs
-    */
-    Server.method('findAndLimitBy', (model, limit, next) => {
-
-      next(null, data.slice(0, limit));
-    });
-
-    Server.method('findByName', (model, name, next) => {
-
-      const result = data.filter((d) => d.name === name);
-      next(null, result[0]);
-    });
-
-    Server.method('validateUser', (email, cb) => {
-
-      cb(null, { email: 'williemik.wmik@gmail.com' });
-    });
-
     Server.register([
       require('hapi-auth-jwt'),
+      require('../dbQueryStub'),
       {
         register: require('../../lib/modules/companies'),
         options: {
-          baseUrl: '/v1/companies'
+          baseUrl
         }
       }], (err) => {
 
@@ -86,6 +67,23 @@ describe('Companies module test suite', () => {
       });
     });
 
+  it('should return array of records matching category=App',
+    (done) => {
+
+      this.Server.inject({
+        method: 'GET',
+        url: baseUrl + '?category=App',
+        headers: {
+          authorization: token
+        }
+      }, (response) => {
+
+        expect(response.statusCode).to.equal(200);
+        expect(response.result).to.be.an.array().and.have.length(2);
+        done();
+      });
+    });
+
   it('should return one record specified by name',
     (done) => {
 
@@ -103,6 +101,7 @@ describe('Companies module test suite', () => {
       });
     });
 
+  /// ERROR TESTS START HERE
   it('should respond 400 when limit is NaN',
     (done) => {
 
@@ -120,7 +119,25 @@ describe('Companies module test suite', () => {
       });
     });
 
-  it('should respond 500 when the database throws an error',
+  it('should respond 400 when limit exceeds 20',
+    (done) => {
+
+      this.Server.inject({
+        method: 'GET',
+        url: baseUrl + '?limit=25',
+        headers: {
+          authorization: token
+        }
+      }, (response) => {
+
+        expect(response.statusCode).to.equal(400);
+        expect(response.result.error).to.equal('Bad Request');
+        done();
+      });
+    });
+
+
+  it('should respond 500 for `/companies` when database throws an error',
     (done) => {
 
       const stub = Sinon.stub(this.Server.methods, 'findAndLimitBy');
@@ -160,7 +177,7 @@ describe('Companies module test suite', () => {
       });
     });
 
-  it('should respond 500 when database throws an error',
+  it('should respond 500 for `/companies/{name}` when database throws an error',
     (done) => {
 
       const stub = Sinon.stub(this.Server.methods, 'findByName');
@@ -183,6 +200,30 @@ describe('Companies module test suite', () => {
       });
     });
 
+  it('should respond 500 for `/companies?category=` when database throws an error',
+    (done) => {
+
+      const stub = Sinon.stub(this.Server.methods, 'findByCategory');
+      stub.callsFake((model, category, limit, next) => {
+
+        next(new Error());
+      });
+      this.Server.inject({
+        method: 'GET',
+        url: baseUrl + '?category=Software',
+        headers: {
+          authorization: token
+        }
+      }, (response) => {
+
+        expect(response.statusCode).to.equal(500);
+        expect(response.result.error).to.equal('Internal Server Error');
+        done();
+      });
+    });
+
+  /// ALL TESTS SHOULD BE ABOVE THIS BECAUSE
+  /// AUTHENTICATION ALWAYS FAILS AFTER HERE
   it('should respond 500 when authentication fails with error',
     (done) => {
 
