@@ -6,29 +6,10 @@ const server = new Hapi.Server();
 
 server.connection({ host: 'localhost', port: 11001 });
 
-server.method('findAndLimitBy', (model, limit, next) => {
-
-  model.find().limit(limit).exec((err, docs) => {
-
-    if (err) {
-      next(err);
-    }
-    return next(err, docs);
-  });
-});
-
-server.method('findByName', (model, name, next) => {
-
-  model.findOne({ name }).exec((err, docs) => {
-
-    if (err) {
-      next(err);
-    }
-    return next(err, docs);
-  });
-});
-
 server.register([
+  {
+    register: require('hapi-auth-jwt')
+  },
   {
     register: require('./lib/plugins/util')
   },
@@ -44,9 +25,18 @@ server.register([
     }
   },
   {
+    register: require('./lib/modules/dbQuery')
+  },
+  {
     register: require('./lib/modules/companies'),
     options: {
       baseUrl: '/v1/companies'
+    }
+  },
+  {
+    register: require('./lib/modules/authentication'),
+    options: {
+      baseUrl: '/v1/user'
     }
   }
 ], (err) => {
